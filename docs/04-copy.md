@@ -2,56 +2,77 @@
 
 **Code: [`src/angles.py`](../src/angles.py), [`src/compose.py`](../src/compose.py)**
 
-## The one rule
+## Selling to engineers is a different burden of proof
 
-**Write for the recipient's buyer, not for the recipient.**
+Not "the same email with fewer adjectives". A VP Engineering can check every
+claim you make against a system they know far better than you do. That single
+fact determines everything below.
 
-A CRO at a vulnerability-management vendor does not want to hear that you admire
-their platform. They spend every day watching their own reps fail to open
-conversations with security teams. A subject line that names the problem *their
-buyer* has is a work sample. A subject line about them is a compliment, and
-compliments are free, so they carry no information.
+So: say one specific, checkable, true thing about *their* system, and let them
+verify it. That is the only move that survives contact with this buyer.
 
-This is also the only honest way to prove ability in a cold email. You cannot
-claim to be good at writing cold email. You can send one.
+## The rules, each with a test behind it
 
-## Give the other two away
+**One observation, about their system, not your product.**
+*"Billed per host for pods that live 40 seconds"* is checkable against their own
+invoice. *"Modern observability for cloud-native teams"* is not checkable against
+anything.
 
-Each category holds three angles. The subject takes one, the body gives away the
-other two. It costs nothing and it is the only part of the email that is useful
-to the reader even if they never reply. It also converts the message from a
+**No adjectives about the product.** Nothing is powerful, seamless,
+best-in-class, next-generation or game-changing.
+`test_no_marketing_adjectives_survive` fails the build on eight of them, across
+every segment, because this is the failure that creeps back in.
+
+**Mechanism, not benefit.** *"Reads OTLP directly, no agent in your code, so
+leaving later costs a config change rather than a re-instrumentation"* is a fact
+with consequences the reader can work out themselves. *"Unified observability"*
+is a claim. A technical reader hears the second as an admission that there was
+nothing checkable to say.
+
+**Never claim open source is cheaper.** It is a *different cost structure*.
+Anyone who runs infrastructure knows self-hosting has a real bill in
+engineer-hours, and someone evaluating a self-hostable tool has already thought
+about it more carefully than you have. Overclaim here and you lose them on line
+one, permanently, and they will be right to go.
+
+**Give away the two angles the subject did not use.** It costs nothing and makes
+the email useful to someone who never replies. It also changes the message from a
 request into a small gift, which changes what a non-reply feels like on both
 sides.
 
-## Length
-
-60 to 65 words. Three short paragraphs: what you do, the terms, the ask.
-
-The version before it was 148 words and included a paragraph on method. Method
-answers a question nobody asks first. It was cut and reply rate went up.
-
-## Every body distinct
-
-Identical bodies across a batch are the easiest thing in the world for a receiver
-to cluster on. Rotating k blocks of n choices gives n^k variants, which is enough
-at any volume worth sending. `compose.py` counts distinct bodies and warns when
-the batch has duplicates.
+**65 to 75 words.** Long cold emails are not read. An earlier version ran to 148
+with a paragraph on method; method answers a question nobody asks first. Cutting
+it raised reply rate.
 
 ## No merge fields
 
-There is no `{{first_name}} I saw you raised a Series B` anywhere in this. That
-sentence is the most-parodied line in the category and it signals a tool rather
-than a person. What is personal here is the *argument*: the subject is chosen for
-the product the company sells, which is much harder to fake than a merge field.
+There is no `{{first_name}}, I saw you raised a Series B` anywhere in this. That
+sentence is the most-parodied line in the category and signals a tool rather than
+a person.
 
-## A mistake worth copying the fix for
+What is personal here is the **argument**: the segment is chosen from public
+evidence about their stack, and the subject line is chosen from the segment.
+That is much harder to fake than a merge field, and much harder to automate
+badly.
 
-An earlier version mapped each category to a phrase naming that vendor's buyer,
-using a lookup table built by guessing rather than research. It told a
+## The mistake worth copying the fix for
+
+An earlier system mapped each category to a phrase naming that company's buyer,
+from a lookup table built by guessing rather than research. It told a
 workload-identity vendor their buyer was "identity and access teams" when they
-sell to platform engineers, and told a privacy-tooling vendor their buyer was
-"CISOs" when they sell to legal.
+sell to platform engineers.
 
-Both errors are invisible to the sender and obvious to the reader, which is the
-worst combination available. The fix was to delete the line. **A generic sentence
-beats a confidently wrong one.**
+Invisible to the sender, obvious to the reader — the worst combination available.
+The fix was to delete the line. **A generic sentence beats a confidently wrong
+one.**
+
+## What this does not cover
+
+For an open-source developer tool, cold email is one channel and not the largest.
+Most of the pipeline arrives through the repository, the docs, the community
+Slack and people who already ran `docker compose up` before anyone spoke to them.
+
+Outbound's honest job in that setting is narrower and still worth doing: reach
+the teams who have the problem, are already paying someone else for it, and have
+not yet heard that a self-hostable OpenTelemetry-native option exists. Everything
+in this repository is built for that job and not for volume.

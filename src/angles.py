@@ -1,94 +1,97 @@
-"""Stage 4a: what to put in the subject line.
+"""Subject lines, by the situation the prospect is actually in.
 
-The rule this whole file exists to enforce: **write for the recipient's buyer,
-not for the recipient.**
+Configured for an OpenTelemetry-native observability platform sold to
+engineering teams: SigNoz's market. Swap this file to retarget the engine; every
+other module reads categories from it and none of them hard-code a vertical.
 
-A CRO at a vulnerability-management vendor does not want to read that you admire
-their platform. They spend every day listening to their own reps fail to open
-conversations with security teams. A subject line that names the problem THEIR
-buyer has is a work sample. A subject line about them is a compliment, and
-compliments are free, so they carry no information.
+THE RULE THIS FILE ENFORCES
 
-Each category holds three angles. Three is deliberate: the subject takes one and
-the body gives away the other two. Giving away the other two costs nothing and is
-the only part of a cold email that is unarguably useful to the reader even if
-they never reply.
+Write about the reader's *system*, not about your product. An engineering leader
+does not want to hear that your platform is unified and powerful. They want to
+know you understand why their observability bill grew 40% while their traffic
+grew 8%, and what specifically caused it.
 
-A one-line caution learned the expensive way: an earlier version mapped category
-to a "buyer" phrase using a lookup table built by guessing. It told a workload-
-identity vendor their buyer was "identity and access teams" (they sell to
-platform engineers) and told a privacy-tooling vendor their buyer was "CISOs"
-(they sell to legal). A generic sentence beats a confidently wrong one.
+That distinction matters more selling to engineers than to any other buyer.
+Engineers are the audience most reliably repelled by marketing register and the
+most rewarding once you're past it, because a correct technical observation is
+checkable and a claim is not.
+
+WHAT NOT TO WRITE
+
+- No adjectives about the product. "Powerful", "seamless", "next-generation"
+  and "revolutionary" all read as noise to this buyer.
+- No "quick question". No "just circling back". No fake thread.
+- Never say open source is cheaper. It is a different cost structure, and
+  someone who runs infrastructure knows self-hosting has a real bill in
+  engineer-hours. Overclaiming here loses a technical reader on line one.
+
+Three angles per segment: the subject takes one, the body gives away the other
+two. Giving them away costs nothing and makes the email useful even to someone
+who never replies.
 """
 
 ANGLES = {
-    "Vulnerability mgmt": [
-        "CVSS 9.8 doesn't scare your CFO",
-        "You patched the CVE, not the exposure",
-        "The board doesn't fund a CVSS score",
+    "Cost / bill growth": [
+        "Your observability bill grew faster than your traffic",
+        "Custom metrics are the line item nobody forecast",
+        "Per-host pricing and autoscaling are a bad match",
     ],
-    "Exposure / CTEM": [
-        "The asset nobody owns is still yours",
-        "Your CMDB is a snapshot, not a map",
-        "The pentest was true for one week",
+    "Vendor lock-in": [
+        "The agent in your code is the switching cost",
+        "Instrumentation you can't take with you",
+        "Re-instrumenting is the reason you haven't moved",
     ],
-    "Cyber risk / ratings": [
-        "Your rating went up, your risk didn't",
-        "Compliant vendors still cause breaches",
-        "The questionnaire is the real audit",
+    "OpenTelemetry migration": [
+        "You adopted OTel, then paid to have it re-mapped",
+        "OTel-compatible and OTel-native are different bills",
+        "Your traces are already standard. Your backend isn't.",
     ],
-    "AppSec / code": [
-        "The CVE is in code you didn't write",
-        "Your SCA found it, your sprint didn't",
-        "The misconfig shipped in your IaC",
+    "Tool sprawl": [
+        "Three tabs to answer one question",
+        "Metrics here, traces there, the incident somewhere else",
+        "Correlating an incident shouldn't be a copy-paste job",
     ],
-    "EDR / XDR / MDR": [
-        "EDR detects, it doesn't contain",
-        "The alert fired at 2am, then what",
-        "Your SOC closed the ticket, not the gap",
+    "Log volume / retention": [
+        "You sample logs to afford them",
+        "Retention is a budget decision, not an engineering one",
+        "The log you needed was the one you dropped",
     ],
-    "SIEM / SOC": [
-        "A full SIEM queue isn't coverage",
-        "Someone watched the alert, nobody owned it",
-        "Logging an attack isn't stopping it",
+    "Cardinality": [
+        "High cardinality is where the answer is, and the bill",
+        "You dropped the label that would have found it",
+        "Cardinality limits are a pricing decision in a config file",
     ],
-    "Cloud / CNAPP": [
-        "Your CSPM found it after it shipped",
-        "Lift-and-shift just moves the mess",
-        "The role nobody scoped is still assumable",
+    "Self-host / residency": [
+        "Some telemetry can't leave the VPC",
+        "Compliance says self-host, the vendor says cloud",
+        "Your data residency answer is currently a slide",
     ],
-    "OT / IoT / ICS": [
-        "The plant floor has no patch window",
-        "Air-gapped, until the vendor needed access",
-        "You inventoried OT. You still can't touch it.",
+    "Kubernetes / ephemeral": [
+        "Billed per host for pods that live 40 seconds",
+        "Autoscaling is a pricing event, not just a capacity one",
+        "Node count stopped predicting anything",
     ],
-    "Identity / IAM": [
-        "Most of your IAM isn't a person",
-        "The service account nobody rotates",
-        "The VPN outlived the office",
+    "Scaling past CloudWatch": [
+        "You outgrew CloudWatch and can't justify Datadog",
+        "Grafana plus Loki plus Tempo is three upgrades to run",
+        "The stack was free until someone had to maintain it",
     ],
-    "Data security": [
-        "Classification is a snapshot, copies aren't",
-        "DLP saw the file, not the fourth copy",
-        "The export was authorised. That's the problem.",
-    ],
-    "Security (other)": [
-        "The control passed, the risk stayed",
-        "You bought the tool, not the outcome",
-        "Coverage isn't the same as protection",
+    "AI / LLM workloads": [
+        "Your LLM calls are the spans you aren't tracing",
+        "Token spend is a latency problem wearing a finance hat",
+        "You can see the request, not what the model cost",
     ],
 }
 
 
 def pick(category, seed):
-    """Choose an angle deterministically from the address.
+    """Choose an angle deterministically from the recipient's address.
 
-    Seeding on the recipient's own address rather than a counter means the same
-    person always gets the same line, a rebuild is reproducible, and the choice
-    survives the list being re-sorted. It also spreads the three angles evenly
-    across a batch without any state.
+    Seeding on the address rather than a counter means the same person always
+    gets the same line, a rebuild is reproducible, and the choice survives the
+    list being re-sorted. It also spreads angles evenly with no state.
     """
-    angles = ANGLES.get(category, ANGLES["Security (other)"])
+    angles = ANGLES.get(category, ANGLES["Cost / bill growth"])
     primary = angles[seed % len(angles)]
     rest = [a for a in angles if a != primary]
     return primary, rest

@@ -1,14 +1,13 @@
-company,domain,description,first_name,email
-Northwind Exposure,northwind.example,"Continuous attack surface management platform. Our engine discovers internet-facing assets and prioritises exposure for security teams.",Dana,dana@northwind.example
-Kestrel Identity,kestrel.example,"Identity security software. The platform governs non-human identities and privileged access across cloud estates.",Ilya,ilya@kestrel.example
-Alder Systems,alder.example,"Value-added reseller and channel partner for leading cybersecurity vendors across the region.",Marcus,marcus@alder.example
-Pinehall Advisory,pinehall.example,"Cybersecurity consulting and professional services. We run audits and advisory engagements for regulated firms.",Ruth,ruth@pinehall.example
-Verity Code,verity.example,"Application security platform. Our SCA product finds reachable vulnerabilities in open source dependencies and the software supply chain.",Sana,sana@verity.example
-Brightmoor Labs,brightmoor.example,"Managed detection and response, plus our own XDR platform and endpoint sensor.",Tobias,tobias@brightmoor.example
-Cinder Grid,cindergrid.example,"OT and ICS security software for industrial control environments. Passive sensor, no downtime on the plant floor.",Priya,priya@cindergrid.example
-SecureRead Media,secureread.example,"The leading cybersecurity news portal and conference organiser, with editorial coverage of the threat landscape.",Owen,owen@secureread.example
-Halden Risk,halden.example,"Cyber risk quantification platform. FAIR-based modelling software that turns technical findings into financial exposure.",Ana,ana@halden.example
-CyberSkill Academy,cyberskill.example,"Certification courses and a security bootcamp. Our training institute has placed thousands of analysts.",Vikram,vikram@cyberskill.example
-Larkspur Data,larkspur.example,"Data security platform. Software for classification, DLP and tracking copies of sensitive files across SaaS.",Mei,mei@larkspur.example
-Orbit Freight,orbitfreight.example,"Logistics software platform for mid-market freight forwarders. Dashboard and API for shipment tracking.",Sam,sam@orbitfreight.example
-Rowan Defence,rowan.example,"Threat intelligence platform, and we also run professional services and advisory engagements for enterprise SOC teams.",Elena,elena@rowan.example
+company,domain,engineers,description,first_name,role,email
+Meridian Pay,meridianpay.example,140,"Payments infrastructure on Kubernetes across three regions. Engineering blog describes 60+ microservices and a Datadog bill that grew 40% while transaction volume grew 8%.",Priya,VP Engineering,priya@meridianpay.example
+Lumen Retail,lumenretail.example,320,"E-commerce platform. Job post for a Senior Site Reliability Engineer mentions OpenTelemetry collectors and migrating tracing off New Relic.",Tom,Director of Platform,tom@lumenretail.example
+Draftsmith,draftsmith.example,45,"LLM writing product. Inference services and a vector database behind an event-driven pipeline. Hiring a platform engineer to own reliability.",Ana,CTO,ana@draftsmith.example
+Kestrel Health,kestrelhealth.example,210,"Clinical data platform, HIPAA scope. Runs microservices on-prem for data residency reasons and cannot ship telemetry to a US cloud region.",Sam,Head of Infrastructure,sam@kestrelhealth.example
+Northwind Logistics,northwind.example,90,"Fleet tracking. Distributed system on k8s with autoscaling. Engineering blog on cutting log volume and shortening retention to control spend.",Ilya,Engineering Manager,ilya@northwind.example
+Cobalt Games,cobaltgames.example,60,"Multiplayer game backend, high-throughput and multi-region. Uses self-managed Prometheus, Loki and Tempo, and a blog post says maintaining it is a part-time job for two engineers.",Mei,Backend Lead,mei@cobaltgames.example
+Ferrous Analytics,ferrous.example,25,"Data pipeline company on containers. Blog on high cardinality metrics and label explosion in their query layer.",Owen,Founding Engineer,owen@ferrous.example
+Halden Bank,haldenbank.example,4200,"Retail bank. Large microservices estate on Kubernetes, currently on Dynatrace and Splunk across multiple business units.",Elena,SRE Manager,elena@haldenbank.example
+Tinsmith Studio,tinsmith.example,6,"Two-person Rails app on a single Heroku dyno. Hiring a devops contractor.",Raj,Founder,raj@tinsmith.example
+Orbit Freight,orbitfreight.example,110,"Freight forwarding platform. Microservices on ECS. No public engineering content and no job posts open.",Dana,VP Engineering,dana@orbitfreight.example
+Vantage Consulting,vantage.example,80,"Digital agency and consulting firm delivering cloud migrations for clients, including Kubernetes and observability tooling.",Marcus,Partner,marcus@vantage.example
+Sentinel Metrics,sentinelmetrics.example,55,"We provide monitoring: an observability platform for distributed systems with APM and tracing.",Lucia,CEO,lucia@sentinelmetrics.example

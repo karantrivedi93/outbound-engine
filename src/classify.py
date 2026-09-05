@@ -1,22 +1,36 @@
-"""Stage 2: is this company a product vendor, or a reseller wearing the words?
+"""Qualify and PRIORITISE accounts from public evidence.
 
-The first version of this gate scored keywords and let IT-services firms,
-resellers and trade media through, because those all describe security in the
-same vocabulary a security vendor uses. Counting words cannot separate them.
+A list is not a target list until it is ordered. Filtering answers "could I
+email this company"; ranking answers "who do I email on Monday morning", and
+only the second one is the job. A founding SDR with 400 plausible accounts and
+no order will work them alphabetically, which means working them by accident.
 
-What does separate them is ORDER. The gate runs as a fixed sequence of tests and
-stops at the first that fires:
+WHAT THIS GATE ASKS, IN ORDER
 
-    1. hard reject   reseller / distributor / training / media / recruiter
-    2. product?      must show it sells software it built
-    3. security?     must be about security at all
-    4. tie-break     product AND services language -> CHECK, do not guess
+    1. disqualify   competitor, agency, or no engineering org at all
+    2. scale?       do they run something that produces real telemetry
+    3. trigger?     is there evidence they are unhappy or already moving
+    4. size band?   too small has no budget, too large is a different motion
+    5. rank         tier by how warm the trigger is, not by company size
 
-Step 4 is the one that matters. A vendor with a managed-service arm looks exactly
-like a reseller to a keyword counter. Rapid7 sells products and MDR; a pure
-reseller has the services language and nothing behind it. When both signals are
-present the row is flagged for a human instead of being decided by whichever list
-happened to be longer.
+THE THREE TRIGGERS, WARMEST FIRST
+
+    OpenTelemetry mentioned    They have already done the expensive half of the
+                               migration. The instrumentation is portable and
+                               the backend is now a choice rather than a
+                               rebuild. Warmest signal available.
+
+    Incumbent named            Datadog, New Relic, Dynatrace, Splunk. There is
+                               a bill, an owner and a renewal date. You are
+                               displacing something, which is harder than
+                               greenfield but the budget already exists.
+
+    Hiring SRE / platform      Somebody signed off on headcount for reliability.
+                               Budget and pain both exist; the specific tool
+                               complaint is not yet visible.
+
+Every verdict carries its evidence, because a ranking nobody can argue with is a
+ranking nobody will correct.
 
     python3 -m src.classify data/sample_companies.csv
 """
@@ -24,118 +38,138 @@ import csv
 import re
 import sys
 
-# Order matters in this file. These are tried first and end the decision.
-HARD_REJECT = {
-    "reseller":    r"\b(reseller|resell|distributor|value[- ]added reseller|VAR|channel partner)\b",
-    "integrator":  r"\b(system integrator|systems integration|IT services|staff augmentation)\b",
-    "training":    r"\b(training institute|certification course|bootcamp|academy)\b",
-    "media":       r"\b(magazine|news portal|editorial|conference organiser|media house)\b",
-    "recruiting":  r"\b(recruitment agency|staffing firm|talent solutions)\b",
+# Checked first; these end the decision.
+DISQUALIFY = {
+    "competitor":  r"\b(observability platform|APM vendor|monitoring vendor|we provide monitoring)\b",
+    "agency":      r"\b(digital agency|consultancy|consulting firm|staff augmentation|outsourcing partner)\b",
+    "reseller":    r"\b(reseller|distributor|channel partner|value[- ]added reseller)\b",
+    "no eng org":  r"\b(law firm|accounting firm|recruitment agency|real estate brokerage)\b",
 }
 
-# Evidence the company ships software of its own.
-PRODUCT = r"\b(platform|product|software|SaaS|engine|agent|sensor|console|API|dashboard)\b"
+# Do they run something that emits meaningful telemetry?
+#
+# Note the optional plurals. The first version ended each alternative at a word
+# boundary, so \bmicroservice\b did not match "microservices" and \bcontainer\b
+# did not match "containers" — which is how every engineering blog on earth
+# actually writes them. Three of twelve sample companies were rejected for
+# owning infrastructure they had described in the plural.
+SCALE = (r"\b(microservices?|kubernetes|k8s|distributed systems?|containers?|service mesh"
+         r"|event[- ]driven|high[- ]throughput|multi[- ]region|serverless|data pipelines?)\b")
 
-# Evidence the subject is security.
-#
-# The acronyms are load-bearing, not decoration. The first version of this
-# pattern held only the spelled-out words, and a company describing itself as an
-# "XDR platform" or doing "managed detection and response" matched none of them.
-# It was then rejected for not being a security company, which is the worst kind
-# of failure this gate can produce: a silent, confident false negative on exactly
-# the vendors most worth reaching. Anything used as a category below must be
-# recognisable here too.
-SECURITY = (r"\b(security|cyber|threat|vulnerabilit|exposure|risk|identity|complian"
-            r"|attack surface|malware|phishing|breach|intrusion|endpoint"
-            r"|detection and response"
-            r"|EDR|XDR|MDR|NDR|SIEM|SOAR|SOC|IAM|PAM|DLP|CNAPP|CSPM|CTEM|EASM|GRC|TPRM)\b")
-
-# Services language. On its own this is disqualifying; alongside a product
-# signal it means "vendor with a services arm", which is a CHECK, not a reject.
-SERVICES = r"\b(consulting|advisory|managed services|implementation partner|audit services|professional services)\b"
-
-# ORDER MATTERS HERE TOO, and it is the opposite of obvious.
-#
-# categorise() returns the FIRST pattern that matches, so the list must run from
-# most specific to most general. Two real mistakes from the first ordering:
-#
-#   "Application security platform, SCA, supply chain" -> Vulnerability mgmt,
-#   because "vulnerabilit" appears in every appsec description ever written.
-#
-#   "Cyber risk quantification, turns findings into financial exposure"
-#   -> Exposure / CTEM, because the word "exposure" was doing double duty as a
-#   security term and an accounting term.
-#
-# Both were wrong in the direction that matters: the subject line is chosen from
-# the category, so a misfiled company gets an email written for somebody else's
-# buyer. That is worse than sending nothing.
-CATEGORIES = [
-    ("Cyber risk / ratings", r"risk quantif|cyber risk|security rating|\bFAIR\b|\bCRQ\b"),
-    ("AppSec / code",        r"appsec|application security|\bSAST\b|\bDAST\b|\bSCA\b"
-                             r"|supply chain|dependenc|open source"),
-    ("OT / IoT / ICS",       r"\bOT\b|\bICS\b|\bIoT\b|plant floor|industrial control"),
-    ("Identity / IAM",       r"\bIAM\b|\bPAM\b|identity|privileged access|non-human identit"),
-    ("Cloud / CNAPP",        r"\bCNAPP\b|\bCSPM\b|cloud security|kubernetes"),
-    ("EDR / XDR / MDR",      r"\bEDR\b|\bXDR\b|\bMDR\b|endpoint|detection and response"),
-    ("SIEM / SOC",           r"\bSIEM\b|\bSOAR\b|\bSOC\b|detection engineer"),
-    ("Data security",        r"\bDLP\b|data security|data protection|classification"),
-    ("Exposure / CTEM",      r"attack surface|exposure management|\bCTEM\b|\bEASM\b"),
-    ("Vulnerability mgmt",   r"vulnerabilit|patch|remediation"),
+# Triggers, warmest first. Order here IS the priority order.
+TRIGGERS = [
+    ("otel",      r"\b(opentelemetry|otel|otlp)\b",
+                  "already on OpenTelemetry: instrumentation is portable, backend is a choice"),
+    ("incumbent", r"\b(datadog|new relic|dynatrace|splunk|appdynamics|honeycomb|grafana cloud)\b",
+                  "names an incumbent: there is a bill, an owner and a renewal date"),
+    ("hiring",    r"\b(hiring|we're looking for|join our team).{0,80}\b(SRE|site reliability|platform engineer|devops|observability)\b",
+                  "hiring reliability headcount: budget and pain both exist"),
 ]
 
+# Which pain to lead with. Most specific first: categorise() returns the first
+# match, so a general pattern placed early swallows the specific ones.
+SEGMENTS = [
+    ("AI / LLM workloads",      r"\b(LLM|inference|GenAI|model serving|vector database)\b"),
+    ("Self-host / residency",   r"\b(data residency|self[- ]host|on[- ]prem|air[- ]gapped|sovereignty|HIPAA|PCI)\b"),
+    ("OpenTelemetry migration", r"\b(opentelemetry|otel|otlp)\b"),
+    ("Kubernetes / ephemeral",  r"\b(kubernetes|k8s|autoscal|ephemeral|spot instance)\b"),
+    ("Log volume / retention",  r"\b(log volume|log retention|log ingestion|petabyte|terabytes of logs)\b"),
+    ("Cardinality",             r"\b(cardinality|label explosion|high[- ]dimension)\b"),
+    ("Tool sprawl",             r"\b(multiple tools|tool sprawl|stitching|three different|context switch)\b"),
+    ("Scaling past CloudWatch", r"\b(cloudwatch|prometheus|loki|tempo|self[- ]managed grafana)\b"),
+    ("Vendor lock-in",          r"\b(lock[- ]in|proprietary agent|vendor agent|migration cost)\b"),
+    ("Cost / bill growth",      r"\b(cost|bill|spend|budget|expensive|pricing)\b"),
+]
 
-def categorise(text):
-    for name, pattern in CATEGORIES:
+# Below this there is no budget; above it, it is an enterprise motion with a
+# procurement cycle, which is not what a founding SDR should spend week one on.
+MIN_ENG, MAX_ENG = 15, 2000
+
+
+def segment(text):
+    for name, pattern in SEGMENTS:
         if re.search(pattern, text, re.I):
             return name
-    return "Security (other)"
+    return "Cost / bill growth"
 
 
-def classify(name, description):
-    """Return (verdict, reason, category).
+def classify(company, description, engineers=None):
+    """Return (verdict, tier, segment, reasons).
 
-    verdict is PASS, REJECT or CHECK. The reason is always specific enough that
-    a human can disagree with it, which is the only way a gate like this gets
-    corrected instead of trusted.
+    verdict: PASS, CHECK or REJECT.  tier: 1 (work first), 2, or 3.
     """
-    text = f"{name} {description}"
+    text = f"{company} {description}"
+    reasons = []
 
-    for label, pattern in HARD_REJECT.items():
+    for label, pattern in DISQUALIFY.items():
         hit = re.search(pattern, text, re.I)
         if hit:
-            return "REJECT", f"hard reject: {label} ({hit.group(0)!r})", ""
+            return "REJECT", None, "", [f"disqualified: {label} ({hit.group(0)!r})"]
 
-    has_product  = bool(re.search(PRODUCT, text, re.I))
-    has_security = bool(re.search(SECURITY, text, re.I))
-    has_services = bool(re.search(SERVICES, text, re.I))
+    # Triggers are found BEFORE the scale test, because two of them settle it.
+    # An earlier version demanded an architecture keyword first and rejected the
+    # warmest account in the sample: a company already running OpenTelemetry
+    # collectors and migrating off New Relic, thrown out for never using the
+    # word "microservices". Anyone emitting OTLP or paying an APM vendor has
+    # already proved they produce telemetry worth paying for. Requiring them to
+    # also say the magic word tests their copywriting, not their architecture.
+    fired = [(name, why) for name, pattern, why in TRIGGERS if re.search(pattern, text, re.I)]
+    names = {n for n, _ in fired}
 
-    if not has_security:
-        return "REJECT", "no security signal", ""
-    if not has_product:
-        return "REJECT", "security, but no product signal (services only)", ""
-    if has_services:
-        # Both signals. Could be a real vendor with a services arm, could be a
-        # consultancy that also licenses a tool. Not a guess worth making.
-        return "CHECK", "product AND services language; needs a human", categorise(text)
+    if re.search(SCALE, text, re.I):
+        reasons.append("runs distributed infrastructure")
+    elif names & {"otel", "incumbent"}:
+        reasons.append("emits real telemetry (inferred from the trigger, not stated)")
+    else:
+        return "REJECT", None, "", ["no scale signal: nothing here emits telemetry worth paying for"]
 
-    return "PASS", "product signal, security signal, no services language", categorise(text)
+    if not fired:
+        # Real infrastructure but no evidence of pain. Not a reject: this is a
+        # nurture account, and calling it a reject would delete it from the list
+        # permanently. It is simply not this week's work.
+        return "CHECK", 3, segment(text), reasons + ["no trigger yet: monitor, do not send"]
+
+    reasons += [why for _name, why in fired]
+
+    if engineers is not None:
+        if engineers < MIN_ENG:
+            return "REJECT", None, "", reasons + [f"{engineers} engineers: below the budget floor"]
+        if engineers > MAX_ENG:
+            return "CHECK", 3, segment(text), reasons + [
+                f"{engineers} engineers: enterprise motion, not a founding-SDR first touch"]
+
+    # Tier by the warmest trigger present, never by company size. A 40-engineer
+    # company already running OTel is a better Monday morning than a 900-engineer
+    # company with nothing but a job post.
+    tier = 1 if ("otel" in names or "incumbent" in names) else 2
+    return "PASS", tier, segment(text), reasons
 
 
 def main(path):
-    counts = {"PASS": 0, "REJECT": 0, "CHECK": 0}
-    rows = list(csv.DictReader(open(path)))
-    width = max(len(r["company"]) for r in rows)
+    rows = []
+    for r in csv.DictReader(open(path)):
+        eng = int(r["engineers"]) if r.get("engineers", "").strip().isdigit() else None
+        verdict, tier, seg, reasons = classify(r["company"], r["description"], eng)
+        rows.append((verdict, tier or 9, r["company"], seg, reasons))
 
-    for r in rows:
-        verdict, reason, category = classify(r["company"], r["description"])
-        counts[verdict] += 1
-        print(f"{verdict:<7} {r['company']:<{width}}  {category or '-':<20} {reason}")
+    order = {"PASS": 0, "CHECK": 1, "REJECT": 2}
+    rows.sort(key=lambda x: (order[x[0]], x[1], x[2]))
+    width = max(len(r[2]) for r in rows)
 
-    total = sum(counts.values())
-    print(f"\n{total} companies -> {counts['PASS']} pass, "
-          f"{counts['CHECK']} need review, {counts['REJECT']} rejected")
-    print("CHECK rows are not failures. They are the rows where guessing would "
-          "have been wrong about half the time.")
+    print(f"{'VERDICT':<8}{'TIER':<6}{'COMPANY':<{width + 2}}{'LEAD WITH':<26}WHY")
+    print("-" * (44 + width + 26))
+    for verdict, tier, company, seg, reasons in rows:
+        t = "-" if tier == 9 else str(tier)
+        print(f"{verdict:<8}{t:<6}{company:<{width + 2}}{seg or '-':<26}{reasons[-1]}")
+        for extra in reasons[:-1]:
+            print(f"{'':<14}{'':<{width + 2}}{'':<26}{extra}")
+
+    p1 = sum(1 for r in rows if r[0] == "PASS" and r[1] == 1)
+    p2 = sum(1 for r in rows if r[0] == "PASS" and r[1] == 2)
+    print(f"\nTier 1: {p1} work these first.  Tier 2: {p2}.  "
+          f"Nurture: {sum(1 for r in rows if r[0] == 'CHECK')}.  "
+          f"Rejected: {sum(1 for r in rows if r[0] == 'REJECT')}.")
+    print("Tier is set by how warm the trigger is, never by company size.")
 
 
 if __name__ == "__main__":

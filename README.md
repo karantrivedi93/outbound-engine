@@ -1,155 +1,178 @@
 # Outbound engine
 
-How a cold email campaign to B2B software vendors actually gets built, from a
-raw list of company names to a message landing in one person's inbox.
+A working outbound system for a developer-tools company: from a raw list of
+companies to one email in one engineering leader's inbox.
 
-This is the working method behind roughly 570 researched prospects and 560+ sent
-emails, written out as runnable code. It is a **reference implementation, not a
-product**: the sample data is synthetic, no credentials or real contacts are in
-the repository, and the sending step is a dry run by default.
+**Configured for [SigNoz](https://signoz.io) — OpenTelemetry-native observability
+sold to engineering teams.** The engine is not SigNoz-specific; the product
+appears in exactly one block in `src/compose.py` and the buyer segments live in
+`src/angles.py`. Both are swappable. It ships pointed at SigNoz because that is
+the market I built this configuration for.
 
-The interesting part is not the sending. It is everything that has to be true
-before a send is allowed to happen.
+Standard library only. `data/` is synthetic. Nothing here can send an email.
 
 ---
 
 ## The pipeline
 
 ```
-  raw company names
+  companies + public signal
         |
-   [1] sourcing          merge every source, dedupe on domain
+   [1] sourcing          merge, dedupe on domain, keep provenance
         |
-   [2] qualification     is this a product vendor, or a reseller wearing the words?
+   [2] qualification     do they have the problem, and can they buy?
+        |                -> PASS / CHECK (nurture) / REJECT, each with evidence
+   [3] prioritisation    tier by how warm the trigger is, never by company size
         |
-   [3] contacts          one decision-maker per company, verified in seat
-        |
-   [4] copy              subject and body matched to what the company sells
+   [4] copy              one checkable observation about THEIR system
         |
    [5] deliverability    SPF, DKIM, DMARC pass before anything goes out
         |
    [6] sending           ramp, daily cap, blocklist, typed confirmation
         |
-   [7] measurement       one log, per-identity, resume-safe
+   [7] measurement       one log; per-identity; resume-safe
         v
      one inbox
 ```
 
-Each stage throws work away. That is the point: the funnel below is from a real
-run, and the ratio that matters is the last one.
-
-| Stage | In | Out | Why the drop |
-|---|---:|---:|---|
-| Sourced | 2,305 | 2,305 | every list, deduped on domain |
-| Classified as security vendors | 2,305 | 1,219 | IT services, resellers and media removed |
-| Passed the product gate | 1,219 | 571 | sells a product, not an implementation of someone else's |
-| Contact confirmed in seat | 936 audited | 553 | **41% of stored contacts had left the company** |
-| Sent | 571 | 542 | blocked countries, bounces, suppression |
-
-That 41% figure is the one that changes how you build these systems. A contact
-list is a perishable good. Anything that treats it as a fact rather than a claim
-with a timestamp will quietly send half its volume into the void.
-
----
-
-## What each stage does
-
-| # | Doc | Code |
-|---|---|---|
-| 1 | [Sourcing](docs/01-sourcing.md) | — |
-| 2 | [Qualification](docs/02-qualification.md) | [`src/classify.py`](src/classify.py) |
-| 3 | [Contacts](docs/03-contacts.md) | [`src/verify.py`](src/verify.py) |
-| 4 | [Copy](docs/04-copy.md) | [`src/angles.py`](src/angles.py), [`src/compose.py`](src/compose.py) |
-| 5 | [Deliverability](docs/05-deliverability.md) | [`src/verify.py`](src/verify.py) |
-| 6 | [Sending](docs/06-sending.md) | [`src/guards.py`](src/guards.py) |
-| 7 | [Measurement](docs/07-measurement.md) | — |
-
----
-
-## Run it
-
-No dependencies outside the standard library. Python 3.9+.
-
 ```bash
-git clone https://github.com/<you>/outbound-engine
-cd outbound-engine
-
-python3 -m src.classify data/sample_companies.csv   # the product gate, with reasons
-python3 -m src.compose  data/sample_companies.csv   # the emails it would send
+python3 -m src.classify data/sample_companies.csv   # the ranked target list
+python3 -m src.compose  data/sample_companies.csv   # the emails, tier 1 first
 python3 -m src.guards   --demo                      # every guard, and what trips it
-python3 -m src.verify   --mx example.com            # does this domain accept mail
-
-python3 -m unittest discover tests -v
+python3 -m unittest discover tests -v               # 29 tests
 ```
 
-`src.compose` prints to stdout. Nothing in this repository can send an email;
-there is no SMTP client and no credential loading anywhere in it.
+---
+
+## The idea the whole thing rests on
+
+**A list is not a target list until it is ordered.**
+
+Filtering answers "could I email this company". Ranking answers "who do I email
+on Monday morning", and only the second one is the job. Given 400 plausible
+accounts and no order, you work them alphabetically, which means working them by
+accident.
+
+So qualification returns a **tier**, and the tier comes from how warm the trigger
+is — never from how big the company is.
+
+| Trigger | Tier | Why |
+|---|:--:|---|
+| **OpenTelemetry in production** | 1 | They already did the expensive half of the migration. Instrumentation is portable; the backend is now a choice rather than a rebuild. |
+| **Incumbent named** (Datadog, New Relic, Dynatrace, Splunk) | 1 | There is a bill, an owner and a renewal date. Displacement is harder than greenfield, but the budget already exists. |
+| **Hiring SRE / platform** | 2 | Someone signed off on reliability headcount. Budget and pain exist; the specific complaint is not visible yet. |
+| Real infrastructure, no trigger | 3 | Nurture. **Not a reject** — rejecting deletes them permanently, and they are simply not this week's work. |
+
+A 40-engineer company already running OTel is a better Monday morning than a
+900-engineer company with nothing but a job post. Sorting by headcount gets that
+exactly backwards, which is what most target lists do.
 
 ---
 
-## The three ideas worth stealing
+## Writing to engineers
 
-**1. The gate runs in a fixed order, and ties are marked, not guessed.**
-Hard-reject reseller and training language first, then require a product signal,
-then require the security signal. A company showing *both* product and services
-language is not guessed at, it is flagged `CHECK` for a human. Rapid7 sells
-products *and* managed services; a pure reseller has the services words and
-nothing else. One ordered pass separates them; a bag of keywords does not.
+Selling to engineers is not selling with fewer adjectives. It is a different
+burden of proof: a VP Engineering can check every claim you make against a system
+they know better than you do. So the only durable move is to say one specific,
+checkable, true thing and let them verify it.
 
-**2. Copy is matched to the product category, and the match is the argument.**
-A vulnerability-management vendor and an identity vendor sell to different people
-with different problems. The subject line is written for the *recipient's buyer*,
-not for the recipient, which is what makes it evidence of ability rather than a
-claim of it. Fourteen categories, three angles each, in
-[`src/angles.py`](src/angles.py).
+What [`src/compose.py`](src/compose.py) enforces, with a test behind each:
 
-**3. The guards are code, not discipline.**
-Every safety property is enforced by the program and cannot be met by intending
-to meet it:
+- **One observation, about their system, not the product.**
+  *"Billed per host for pods that live 40 seconds"* is checkable.
+- **No adjectives about the product.** Nothing is powerful, seamless or
+  best-in-class. `test_no_marketing_adjectives_survive` fails the build on eight
+  of them.
+- **Mechanism, not benefit.** *"Reads OTLP directly, no agent in your code, so
+  leaving later costs a config change"* is a fact someone can check. "Unified
+  observability" is a claim, and a technical reader hears the second one as an
+  admission that there was nothing checkable to say.
+- **Never claim open source is cheaper.** It is a different cost structure.
+  Anyone who runs infrastructure knows self-hosting costs engineer-hours, and
+  overclaiming loses them on line one.
+- **Give away the two angles the subject did not use.** Costs nothing, and makes
+  the email useful to someone who never replies.
 
-- a **true per-day cap** that reads back what was already sent today, so a second
-  run of the same command sends the remainder or nothing
-- a **ramp** that ceilings volume by day number from that sender's first ever
-  send, which `--daily-cap` can only lower
-- **hours and weekday** limits
-- a **four-layer blocklist** that fails closed and is re-checked immediately
-  before every individual send, not just at startup
-- **identity binding**: the OAuth token names its own mailbox and the program
+Ten buyer segments, three angles each, in [`src/angles.py`](src/angles.py).
+
+---
+
+## The guards, and the day that caused them
+
+Every safety property is enforced by the program, because a limit that depends on
+the operator remembering is not a limit, it is a preference.
+
+This is not hypothetical. One day a campaign sent **470 emails against a plan of
+35**, 297 of them between midnight and 05:00, to a list that was almost entirely
+US-based. `--daily-cap 35` was a **per-run** cap with no memory, so five
+invocations meant five caps. The sender had been writing a timestamp on every
+send since day one and nothing had ever read it back. Nobody was careless; the
+operator's intent was correct every single time.
+
+- **True per-day cap** — reads the log back, so a second run of the same command
+  sends the remainder or nothing
+- **Enforced ramp** — ceiling by day number from that sender's first ever send;
+  `--daily-cap` may only lower it
+- **Four-layer blocklist, failing closed** — anything unparseable is blocked, and
+  layer 4 re-checks immediately before each individual send
+- **Suppression by domain, not address** — someone who asked to be left alone did
+  not mean "email my colleague instead"
+- **Identity binding** — the credential names its own mailbox; the program
   refuses to run if that disagrees with the From header
-- a **typed confirmation** before any real send
+- **Typed confirmation** — subject and word count printed, literal `YES`
+  required. This exists because 54 emails once went out on the wrong template
+- **Circuit breaker** — stops at a 4% failure rate; a batch of dead addresses
+  halts itself
 
-This list exists because on one day a campaign sent 470 emails against a plan of
-35, and 297 of them went out between midnight and 05:00. The cap was per-run
-instead of per-day, so five invocations meant five caps. Nothing was malicious
-and nobody was careless. The cap was simply advisory, and advisory limits are not
-limits. See [Sending](docs/06-sending.md).
+`python3 -m src.guards --demo` prints all of it.
+
+---
+
+## Bugs worth reading, all found building this
+
+Kept in the code as comments, because the reasoning is the useful part.
+
+**A word boundary cost three good accounts.** `\bmicroservice\b` does not match
+"microservices", and `\bcontainer\b` does not match "containers" — which is how
+every engineering blog on earth writes them. Three of twelve sample companies
+were rejected for owning infrastructure they had described in the plural.
+
+**Ordering a gate wrong rejects your best account.** The qualifier demanded an
+architecture keyword *before* looking for triggers, and threw out a company
+running OpenTelemetry collectors and migrating off New Relic — the warmest
+account in the file — for never using the word "microservices". Anyone emitting
+OTLP has already proved they produce telemetry. Requiring them to also say the
+magic word tests their copywriting, not their architecture. Triggers are now
+found first and two of them satisfy the scale test on their own.
+
+**Most-specific patterns must be tried first.** `segment()` returns the first
+match, so a general pattern placed early swallows the specific ones. The category
+chooses the subject line, so a misfiled company gets an email written for someone
+else's problem, which is worse than sending nothing.
 
 ---
 
-## What is deliberately not here
+## What is deliberately absent
 
-No contact data, no API keys, no OAuth tokens, no send log, no company list.
-`data/sample_companies.csv` is invented: the domains are RFC 2606 reserved names
-that cannot resolve to a real business.
+**No contact-finding code and no SMTP client.** Nothing here can build a list or
+send an email. Sourcing addresses is the part with real legal weight, it is
+specific to whichever provider you pay, and publishing a working list-validation
+tool helps the wrong people most. Stage 3 documents what to verify and how to
+check a domain accepts mail. It does not help you find an address.
 
-No scraper and no enrichment client either. Sourcing contacts is the part with
-the real legal and ethical weight, it is specific to whichever provider you pay,
-and publishing a working one helps the wrong people most. Stage 3 documents what
-to check about a contact and how to verify a mailbox exists. It does not help you
-find one.
-
----
+**No real data.** No contacts, no credentials, no send log. The sample domains
+are RFC 2606 reserved names that cannot resolve to a real business, and
+`.gitignore` blocks `.env`, tokens and any `*contacts*.csv` as a backstop.
 
 ## On consent
 
 Cold email to a business address about that business is lawful in most places and
-regulated in all of them. GDPR needs a legitimate interest assessment and a real
-opt-out. CAN-SPAM needs an accurate From, a physical address and honoured
-unsubscribes. PECR and CASL are stricter and CASL wants consent up front.
+regulated in all of them. GDPR wants a legitimate interest assessment and a real
+opt-out; CAN-SPAM wants an accurate From, a physical address and honoured
+unsubscribes; CASL wants consent up front.
 
-The engineering that follows from that is unglamorous and load-bearing:
-suppression is permanent and checked before every send, replies suppress the
-whole domain rather than the one address, and there is one log so nobody is
-contacted twice by two different campaigns.
+The engineering that follows is unglamorous and load-bearing: suppression is
+permanent and checked before every send, a reply suppresses the whole domain, and
+there is one log so nobody is contacted twice by two campaigns.
 
 MIT licensed.

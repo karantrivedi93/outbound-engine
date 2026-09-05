@@ -1,56 +1,80 @@
-# 2. Qualification
+# 2. Qualification and prioritisation
 
 **Code: [`src/classify.py`](../src/classify.py)**
 
-The question is not "is this company in cybersecurity". It is "does this company
-sell a product it built". Those are very different, and the words are identical.
+A list is not a target list until it is ordered.
 
-## Why keyword scoring fails
+Filtering answers *could I email this company*. Ranking answers *who do I email
+on Monday morning*, and only the second one is the job. A founding SDR with 400
+plausible accounts and no order will work them alphabetically, which is working
+them by accident.
 
-A reseller's website, an IT-services firm's website and a real vendor's website
-all use the same nouns. A consultancy says "platform" because it implements one.
-A trade magazine says "threat" a hundred times a day. Score the keywords and all
-three pass.
-
-## What works: an ordered gate that can say "I don't know"
+## The gate
 
 ```
-1. hard reject   reseller / distributor / training / media / recruiter
-2. product?      must show it ships software of its own
-3. security?     must be about security at all
-4. tie-break     product AND services language -> CHECK, do not guess
+1. disqualify   competitor, agency, or no engineering org at all
+2. trigger?     evidence they are unhappy or already moving
+3. scale?       do they run something that emits real telemetry
+4. size band?   too small has no budget, too large is a different motion
+5. rank         tier by how warm the trigger is, never by company size
 ```
 
-Step 4 is the whole design. A vendor with a managed-service arm is
-indistinguishable from a reseller by vocabulary alone. Rapid7 sells products
-*and* MDR. A pure reseller has the services language and nothing behind it. When
-both signals fire, the row is flagged for a human rather than decided by
-whichever word list happened to be longer.
+## The three triggers, warmest first
 
-A gate that cannot return "I don't know" will express its uncertainty as
-confident wrong answers instead, and you will not be able to tell which ones.
+**OpenTelemetry in production.** The strongest signal available. They have
+already done the expensive half of a migration: the instrumentation is portable,
+so the backend is now a *choice* rather than a rebuild. Everything that normally
+makes displacement hard has already been paid for by someone else.
 
-## Two bugs from the real thing, both worth knowing
+**An incumbent named.** Datadog, New Relic, Dynatrace, Splunk. There is a bill,
+an owner and a renewal date. Harder than greenfield, but the budget exists and
+you are arguing about allocation rather than creating a line item.
 
-**Acronyms must appear in the security signal.** The first version matched only
-spelled-out words, so a company calling itself an "XDR platform" matched nothing
-and was rejected for not being a security company. A silent false negative on
-exactly the vendors most worth reaching. Anything you use as a category must be
-recognisable as a signal too.
+**Hiring SRE or platform.** Someone signed off on reliability headcount, so
+budget and pain both exist. The specific tool complaint is not visible yet, which
+is why this is tier 2 rather than tier 1.
 
-**Category patterns must run most-specific first.** `categorise()` returns the
-first match, so a general pattern placed early swallows the specific ones. Two
-real misfilings: an application-security vendor filed as vulnerability management
-because "vulnerabilit" appears in every appsec description; and a cyber-risk-
-quantification vendor filed as exposure management because "financial exposure"
-matched a security term doing double duty as an accounting one.
+## Tier is not size
 
-That second class of bug is worse than it looks, because the category chooses the
-subject line. A misfiled company gets an email written for somebody else's buyer,
-which is worse than sending nothing.
+A 40-engineer company already running OTel is a better Monday morning than a
+900-engineer company with nothing but a job post. Sorting a target list by
+headcount gets this exactly backwards, and most target lists are sorted by
+headcount.
 
-## Verify against known answers
+Above roughly 2,000 engineers the account is real but the motion is different:
+procurement, security review, a committee. That is not a founding SDR's first
+touch, so it is marked for later rather than worked now.
 
-Keep a list of companies you are certain about and assert the gate still returns
-the right verdict for all of them after every change. Without that, each fix
-silently breaks two things you already got right.
+## CHECK is not REJECT
+
+A company with real infrastructure and no visible trigger is **nurture**, not a
+reject. Rejecting deletes them from the list permanently; they are simply not
+this week's work. Re-run the gate when new signal appears — a job post, a
+conference talk, an engineering blog on cost — and they become tier 1 or 2
+without anyone having to remember they existed.
+
+A gate that cannot say "not yet" will express that as a permanent no.
+
+## Every verdict carries its evidence
+
+`classify()` returns the reasons alongside the verdict, and the CLI prints them.
+A ranking nobody can argue with is a ranking nobody will correct.
+
+## Two bugs, both real, both in the code as comments
+
+**A word boundary cost three good accounts.** `\bmicroservice\b` does not match
+"microservices". Neither does `\bcontainer\b` match "containers". Three of twelve
+sample companies were rejected for owning infrastructure they had described in
+the plural.
+
+**Ordering the gate wrong rejected the best account in the file.** The first
+version demanded an architecture keyword before looking for triggers, and threw
+out a company running OpenTelemetry collectors and migrating off New Relic —
+because the description never said "microservices". Anyone emitting OTLP has
+already proved they produce telemetry worth paying for. Requiring them to also
+say the magic word tests their copywriting, not their architecture.
+
+That second class of bug is the dangerous one: a silent, confident false negative
+on exactly the accounts most worth reaching. Nothing in the output tells you it
+happened. The only defence is a set of known-answer cases asserted on every
+change, which is what `tests/test_guards.py` is.
