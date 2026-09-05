@@ -1,0 +1,100 @@
+{
+  "market": "Cybersecurity product vendors (exposure, identity, detection)",
+  "buyer": "CRO, VP Sales, founder at vendors under ~300 staff, SDR/BDR leader",
+  "notes": "Selling outbound INTO security vendors. The subject line is written for the vendor's own buyer, which makes the email a work sample rather than a claim. Security teams run the most aggressive mail filtering of any audience, so deliverability is not optional here.",
+
+  "product": {
+    "mechanism": [
+      "{product} writes the cold email, works the replies and books the meeting. Paid per meeting held, no retainer.",
+      "{product} runs the first-touch layer: one named decision-maker per account, a unique body each time, no sequence tooling.",
+      "{product} charges per meeting that actually happened, so a no-show and an existing customer both cost you nothing."
+    ]
+  },
+
+  "size_band": [10, 500],
+  "size_unit": "staff",
+
+  "disqualify": {
+    "reseller": "\\b(reseller|resell|distributor|value[- ]added reseller|channel partner)\\b",
+    "integrator": "\\b(system integrator|systems integration|IT services|staff augmentation)\\b",
+    "training": "\\b(training institute|certification course|bootcamp|academy)\\b",
+    "media": "\\b(magazine|news portal|editorial|conference organiser|media house)\\b"
+  },
+
+  "scale_signal": "\\b(platform|products?|software|SaaS|engine|agents?|sensors?|console|API|dashboards?)\\b",
+
+  "triggers": [
+    {"name": "hiring sales", "tier": 1,
+     "pattern": "\\b(hiring|we're looking for|join our team).{0,80}\\b(SDR|BDR|account executive|sales development|revenue)\\b",
+     "why": "hiring pipeline headcount: they have decided outbound is the gap",
+     "implies_scale": true},
+    {"name": "funded", "tier": 1,
+     "pattern": "\\b(series [abc]|seed round|raised \\$|funding round)\\b",
+     "why": "recently funded: a growth number now has a date attached to it",
+     "implies_scale": true},
+    {"name": "founder-led", "tier": 2,
+     "pattern": "\\b(founder[- ]led sales|no sales team|first sales hire|early go[- ]to[- ]market)\\b",
+     "why": "founder still doing sales: the pain is personal and the decision is one person",
+     "implies_scale": false}
+  ],
+
+  "segments": [
+    ["Cyber risk / ratings", "risk quantif|cyber risk|security rating|\\bFAIR\\b|\\bCRQ\\b"],
+    ["AppSec / code",        "appsec|application security|\\bSAST\\b|\\bDAST\\b|\\bSCA\\b|supply chain|dependenc"],
+    ["OT / IoT / ICS",       "\\bOT\\b|\\bICS\\b|\\bIoT\\b|plant floor|industrial control"],
+    ["Identity / IAM",       "\\bIAM\\b|\\bPAM\\b|identity|privileged access|non-human identit"],
+    ["Cloud / CNAPP",        "\\bCNAPP\\b|\\bCSPM\\b|cloud security|kubernetes"],
+    ["EDR / XDR / MDR",      "\\bEDR\\b|\\bXDR\\b|\\bMDR\\b|endpoint|detection and response"],
+    ["Data security",        "\\bDLP\\b|data security|data protection|classification"],
+    ["Exposure / CTEM",      "attack surface|exposure management|\\bCTEM\\b|\\bEASM\\b"],
+    ["Vulnerability mgmt",   "vulnerabilit|patch|remediation"]
+  ],
+
+  "angles": {
+    "Vulnerability mgmt": [
+      "CVSS 9.8 doesn't scare your CFO",
+      "You patched the CVE, not the exposure",
+      "The board doesn't fund a CVSS score"
+    ],
+    "Exposure / CTEM": [
+      "The asset nobody owns is still yours",
+      "Your CMDB is a snapshot, not a map",
+      "The pentest was true for one week"
+    ],
+    "Cyber risk / ratings": [
+      "Your rating went up, your risk didn't",
+      "Compliant vendors still cause breaches",
+      "The questionnaire is the real audit"
+    ],
+    "AppSec / code": [
+      "The CVE is in code you didn't write",
+      "Your SCA found it, your sprint didn't",
+      "The misconfig shipped in your IaC"
+    ],
+    "EDR / XDR / MDR": [
+      "EDR detects, it doesn't contain",
+      "The alert fired at 2am, then what",
+      "Your SOC closed the ticket, not the gap"
+    ],
+    "Cloud / CNAPP": [
+      "Your CSPM found it after it shipped",
+      "Lift-and-shift just moves the mess",
+      "The role nobody scoped is still assumable"
+    ],
+    "OT / IoT / ICS": [
+      "The plant floor has no patch window",
+      "Air-gapped, until the vendor needed access",
+      "You inventoried OT. You still can't touch it."
+    ],
+    "Identity / IAM": [
+      "Most of your IAM isn't a person",
+      "The service account nobody rotates",
+      "The VPN outlived the office"
+    ],
+    "Data security": [
+      "Classification is a snapshot, copies aren't",
+      "DLP saw the file, not the fourth copy",
+      "The export was authorised. That's the problem."
+    ]
+  }
+}

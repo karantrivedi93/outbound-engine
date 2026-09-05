@@ -1,0 +1,106 @@
+{
+  "market": "Observability / APM sold to engineering teams",
+  "buyer": "VP Engineering, Director of Platform, SRE lead, CTO at small companies",
+  "notes": "Technical buyer who can check every claim against a system they know better than you. Mechanism beats benefit. Never claim open source is cheaper: it is a different cost structure and they have already priced the engineer-hours.",
+
+  "product": {
+    "mechanism": [
+      "{product} is OpenTelemetry-native, so the instrumentation stays yours and the backend stops being a rebuild.",
+      "{product} reads OTLP directly. No agent in your code, so leaving later costs a config change, not a re-instrumentation.",
+      "{product} bills on telemetry volume, not hosts or seats. A different shape of bill, not a smaller one."
+    ]
+  },
+
+  "size_band": [15, 2000],
+  "size_unit": "engineers",
+
+  "disqualify": {
+    "competitor": "\\b(observability platform|APM vendor|monitoring vendor|we provide monitoring)\\b",
+    "agency": "\\b(digital agency|consultancy|consulting firm|staff augmentation|outsourcing partner)\\b",
+    "reseller": "\\b(reseller|distributor|channel partner|value[- ]added reseller)\\b",
+    "no eng org": "\\b(law firm|accounting firm|recruitment agency|real estate brokerage)\\b"
+  },
+
+  "scale_signal": "\\b(microservices?|kubernetes|k8s|distributed systems?|containers?|service mesh|event[- ]driven|high[- ]throughput|multi[- ]region|serverless|data pipelines?)\\b",
+
+  "triggers": [
+    {"name": "otel", "tier": 1,
+     "pattern": "\\b(opentelemetry|otel|otlp)\\b",
+     "why": "already on OpenTelemetry: instrumentation is portable, backend is a choice",
+     "implies_scale": true},
+    {"name": "incumbent", "tier": 1,
+     "pattern": "\\b(datadog|new relic|dynatrace|splunk|appdynamics|honeycomb|grafana cloud)\\b",
+     "why": "names an incumbent: there is a bill, an owner and a renewal date",
+     "implies_scale": true},
+    {"name": "hiring", "tier": 2,
+     "pattern": "\\b(hiring|we're looking for|join our team).{0,80}\\b(SRE|site reliability|platform engineer|devops|observability)\\b",
+     "why": "hiring reliability headcount: budget and pain both exist",
+     "implies_scale": false}
+  ],
+
+  "segments": [
+    ["AI / LLM workloads",      "\\b(LLM|inference|GenAI|model serving|vector database)\\b"],
+    ["Self-host / residency",   "\\b(data residency|self[- ]host|on[- ]prem|air[- ]gapped|sovereignty|HIPAA|PCI)\\b"],
+    ["OpenTelemetry migration", "\\b(opentelemetry|otel|otlp)\\b"],
+    ["Kubernetes / ephemeral",  "\\b(kubernetes|k8s|autoscal|ephemeral|spot instance)\\b"],
+    ["Log volume / retention",  "\\b(log volume|log retention|log ingestion|petabyte|terabytes of logs)\\b"],
+    ["Cardinality",             "\\b(cardinality|label explosion|high[- ]dimension)\\b"],
+    ["Tool sprawl",             "\\b(multiple tools|tool sprawl|stitching|three different|context switch)\\b"],
+    ["Scaling past CloudWatch", "\\b(cloudwatch|prometheus|loki|tempo|self[- ]managed grafana)\\b"],
+    ["Vendor lock-in",          "\\b(lock[- ]in|proprietary agent|vendor agent|migration cost)\\b"],
+    ["Cost / bill growth",      "\\b(cost|bill|spend|budget|expensive|pricing)\\b"]
+  ],
+
+  "angles": {
+    "Cost / bill growth": [
+      "Your observability bill grew faster than your traffic",
+      "Custom metrics are the line item nobody forecast",
+      "Per-host pricing and autoscaling are a bad match"
+    ],
+    "Vendor lock-in": [
+      "The agent in your code is the switching cost",
+      "Instrumentation you can't take with you",
+      "Re-instrumenting is the reason you haven't moved"
+    ],
+    "OpenTelemetry migration": [
+      "You adopted OTel, then paid to have it re-mapped",
+      "OTel-compatible and OTel-native are different bills",
+      "Your traces are already standard. Your backend isn't."
+    ],
+    "Tool sprawl": [
+      "Three tabs to answer one question",
+      "Metrics here, traces there, the incident somewhere else",
+      "Correlating an incident shouldn't be a copy-paste job"
+    ],
+    "Log volume / retention": [
+      "You sample logs to afford them",
+      "Retention is a budget decision, not an engineering one",
+      "The log you needed was the one you dropped"
+    ],
+    "Cardinality": [
+      "High cardinality is where the answer is, and the bill",
+      "You dropped the label that would have found it",
+      "Cardinality limits are a pricing decision in a config file"
+    ],
+    "Self-host / residency": [
+      "Some telemetry can't leave the VPC",
+      "Compliance says self-host, the vendor says cloud",
+      "Your data residency answer is currently a slide"
+    ],
+    "Kubernetes / ephemeral": [
+      "Billed per host for pods that live 40 seconds",
+      "Autoscaling is a pricing event, not just a capacity one",
+      "Node count stopped predicting anything"
+    ],
+    "Scaling past CloudWatch": [
+      "You outgrew CloudWatch and can't justify Datadog",
+      "Grafana plus Loki plus Tempo is three upgrades to run",
+      "The stack was free until someone had to maintain it"
+    ],
+    "AI / LLM workloads": [
+      "Your LLM calls are the spans you aren't tracing",
+      "Token spend is a latency problem wearing a finance hat",
+      "You can see the request, not what the model cost"
+    ]
+  }
+}

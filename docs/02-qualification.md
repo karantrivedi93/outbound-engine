@@ -1,6 +1,11 @@
 # 2. Qualification and prioritisation
 
-**Code: [`src/classify.py`](../src/classify.py)**
+**Code: [`src/classify.py`](../src/classify.py), [`src/profile.py`](../src/profile.py)**
+
+The logic below is market-agnostic. The triggers, disqualifiers and size band it
+reads all come from a profile in `profiles/`; the examples here use the
+observability profile because a concrete example is easier to argue with than an
+abstract one.
 
 A list is not a target list until it is ordered.
 

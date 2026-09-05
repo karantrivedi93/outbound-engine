@@ -2,6 +2,9 @@
 
 **Code: [`src/angles.py`](../src/angles.py), [`src/compose.py`](../src/compose.py)**
 
+The rules are market-agnostic; the subject lines and product sentences come from
+the loaded profile. Examples below use the observability profile.
+
 ## Selling to engineers is a different burden of proof
 
 Not "the same email with fewer adjectives". A VP Engineering can check every

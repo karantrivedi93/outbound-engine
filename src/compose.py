@@ -1,7 +1,8 @@
 """Build one email per account.
 
-CONFIGURED FOR SIGNOZ. The product block below is the only place the product
-appears; swap those four strings to point the engine at something else.
+MARKET-AGNOSTIC. The product sentences and the subject lines come from the
+loaded profile (`profiles/*.json`); the product NAME comes from --product.
+Nothing in this file names a market, a company or a product.
 
 WHY THE COPY LOOKS LIKE THIS
 
@@ -24,24 +25,14 @@ Rules this file enforces:
 
     python3 -m src.compose data/sample_companies.csv
 """
+import argparse
 import csv
 import sys
 
+from . import profile as profile_mod
+
 from .angles import pick, seed_for
 from .classify import classify
-
-# ---- the only product-specific block in the engine -----------------------
-PRODUCT = "SigNoz"
-MECHANISM = [
-    "SigNoz is OpenTelemetry-native, so the instrumentation stays yours and the "
-    "backend stops being a rebuild.",
-    "SigNoz reads OTLP directly. No agent in your code, so leaving later costs a "
-    "config change, not a re-instrumentation.",
-    "SigNoz bills on telemetry volume, not hosts or seats. A different shape of "
-    "bill, not a smaller one.",
-]
-SIGN = "Karan Trivedi"
-# --------------------------------------------------------------------------
 
 OPENER = [
     "You will know whether this is true of {company}. It is the pattern on teams "
@@ -63,40 +54,54 @@ ASK = [
 ]
 
 
-def compose(first_name, email, company, segment):
+def compose(profile, first_name, email, company, segment, product="Acme", sign="Karan Trivedi"):
     """Return (subject, body). Deterministic in the recipient's address."""
     seed = seed_for(email)
-    subject, rest = pick(segment, seed)
+    subject, rest = pick(profile, segment, seed)
+    mechanism = profile.mechanism[(seed // 9) % len(profile.mechanism)]
 
     blocks = [
         f"Hi {first_name},",
         OPENER[seed % len(OPENER)].format(company=company),
         subject + ".",
         GIVEAWAY[(seed // 3) % len(GIVEAWAY)].format(a=rest[0], b=rest[1]),
-        MECHANISM[(seed // 9) % len(MECHANISM)],
+        mechanism.format(product=product),
         ASK[(seed // 27) % len(ASK)],
-        SIGN,
+        sign,
     ]
     return subject, "\n\n".join(blocks)
 
 
-def main(path):
-    rows = list(csv.DictReader(open(path)))
-    bodies, built = set(), []
+def main():
+    ap = argparse.ArgumentParser(description="Build one email per qualified account.")
+    ap.add_argument("csv", nargs="?", default="data/sample_observability.csv")
+    ap.add_argument("--profile", default="observability",
+                    help=f"market profile: {', '.join(profile_mod.available())}")
+    ap.add_argument("--product", default="Acme", help="your product's name")
+    ap.add_argument("--sign", default="Karan Trivedi")
+    a = ap.parse_args()
 
-    for r in rows:
-        eng = int(r["engineers"]) if r.get("engineers", "").strip().isdigit() else None
-        verdict, tier, segment, _reasons = classify(r["company"], r["description"], eng)
+    try:
+        profile = profile_mod.load(a.profile)
+    except profile_mod.ProfileError as exc:
+        sys.exit(f"[!] {exc}")
+
+    bodies, built = set(), []
+    for r in csv.DictReader(open(a.csv)):
+        raw = (r.get("size") or r.get("engineers") or "").strip()
+        size = int(raw) if raw.isdigit() else None
+        verdict, tier, segment, _why = classify(profile, r["company"], r["description"], size)
         if verdict != "PASS":
             continue
-        subject, body = compose(r["first_name"], r["email"], r["company"], segment)
+        subject, body = compose(profile, r["first_name"], r["email"], r["company"],
+                                segment, a.product, a.sign)
         bodies.add(body)
         built.append((tier, r, subject, body, segment))
 
-    built.sort(key=lambda x: x[0])          # tier 1 first: this is the send order
+    built.sort(key=lambda x: x[0])          # tier 1 first: this IS the send order
     for tier, r, subject, body, segment in built:
         print("=" * 74)
-        print(f"Tier {tier}  |  {r['first_name']}, {r['role']}, {r['company']}  |  {segment}")
+        print(f"Tier {tier}  |  {r['first_name']}, {r.get('role', '?')}, {r['company']}  |  {segment}")
         print(f"Subject: {subject}")
         print(f"Words:   {len(body.split())}")
         print("-" * 74)
@@ -110,4 +115,4 @@ def main(path):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "data/sample_companies.csv")
+    main()

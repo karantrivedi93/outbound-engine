@@ -1,0 +1,8 @@
+company,domain,size,description,first_name,role,email
+Verity Code,verity.example,60,"Application security platform. Our SCA engine finds reachable vulnerabilities in open source dependencies. Series A raised last quarter, hiring our first SDR.",Sana,VP Sales,sana@verity.example
+Northwind Exposure,northwind.example,45,"Continuous attack surface management software. Founder-led sales, no sales team yet.",Dana,Co-founder,dana@northwind.example
+Kestrel Identity,kestrel.example,120,"Identity security platform governing non-human identities and privileged access. Hiring an account executive and a sales development rep.",Ilya,CRO,ilya@kestrel.example
+Halden Risk,halden.example,80,"Cyber risk quantification platform. FAIR-based modelling software. Seed round closed in March.",Ana,CEO,ana@halden.example
+Alder Systems,alder.example,200,"Value-added reseller and channel partner for leading security vendors.",Marcus,Director,marcus@alder.example
+CyberSkill Academy,cyberskill.example,90,"Certification courses and a security bootcamp. Our training institute has placed thousands of analysts.",Vikram,Head of Growth,vikram@cyberskill.example
+Larkspur Data,larkspur.example,150,"Data security platform for classification and DLP across SaaS. No public hiring or funding signal.",Mei,VP Revenue,mei@larkspur.example
