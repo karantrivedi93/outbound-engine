@@ -1,0 +1,14 @@
+company,domain,description,first_name,email
+Northwind Exposure,northwind.example,"Continuous attack surface management platform. Our engine discovers internet-facing assets and prioritises exposure for security teams.",Dana,dana@northwind.example
+Kestrel Identity,kestrel.example,"Identity security software. The platform governs non-human identities and privileged access across cloud estates.",Ilya,ilya@kestrel.example
+Alder Systems,alder.example,"Value-added reseller and channel partner for leading cybersecurity vendors across the region.",Marcus,marcus@alder.example
+Pinehall Advisory,pinehall.example,"Cybersecurity consulting and professional services. We run audits and advisory engagements for regulated firms.",Ruth,ruth@pinehall.example
+Verity Code,verity.example,"Application security platform. Our SCA product finds reachable vulnerabilities in open source dependencies and the software supply chain.",Sana,sana@verity.example
+Brightmoor Labs,brightmoor.example,"Managed detection and response, plus our own XDR platform and endpoint sensor.",Tobias,tobias@brightmoor.example
+Cinder Grid,cindergrid.example,"OT and ICS security software for industrial control environments. Passive sensor, no downtime on the plant floor.",Priya,priya@cindergrid.example
+SecureRead Media,secureread.example,"The leading cybersecurity news portal and conference organiser, with editorial coverage of the threat landscape.",Owen,owen@secureread.example
+Halden Risk,halden.example,"Cyber risk quantification platform. FAIR-based modelling software that turns technical findings into financial exposure.",Ana,ana@halden.example
+CyberSkill Academy,cyberskill.example,"Certification courses and a security bootcamp. Our training institute has placed thousands of analysts.",Vikram,vikram@cyberskill.example
+Larkspur Data,larkspur.example,"Data security platform. Software for classification, DLP and tracking copies of sensitive files across SaaS.",Mei,mei@larkspur.example
+Orbit Freight,orbitfreight.example,"Logistics software platform for mid-market freight forwarders. Dashboard and API for shipment tracking.",Sam,sam@orbitfreight.example
+Rowan Defence,rowan.example,"Threat intelligence platform, and we also run professional services and advisory engagements for enterprise SOC teams.",Elena,elena@rowan.example

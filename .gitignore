@@ -1,0 +1,20 @@
+# Nothing real ever goes in this repo. These patterns are the backstop.
+.env
+.env.*
+*token*.json
+*client_secret*.json
+access/
+sent_log.json
+apollo_cache.json
+
+# real contact data — the sample file in data/ is synthetic and whitelisted below
+*contacts*.csv
+*leads*.csv
+*targets*.csv
+*sendable*.csv
+!data/sample_companies.csv
+
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
